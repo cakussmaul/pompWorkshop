@@ -5,7 +5,7 @@
 # Pipeline: Data → POMP object → MLE → MCMC
 ################################################################################
 
-# 1. PACKAGES ------------------------------------------------------------------
+# 1. load packages ------------------------------------------------------------------
 library(tidyverse)
 library(lubridate)
 library(pomp)       
@@ -14,11 +14,8 @@ library(BayesianTools)
 library(MCMCvis)
 library(coda)
 
-# ── helper function: discrete-time transition probability ─────────────────────
-p_trans_r <- function(r, dt = 1) 1 - exp(-r * dt)
 
-
-# 2. DATA ----------------------------------------------------------------------
+# 2. load data ----------------------------------------------------------------------
 # Load the data for Germany
 dat <- readRDS("_data/dat_tutorial.rds")
 ct_nm <- "Germany"
@@ -40,7 +37,7 @@ dat_pomp <- dat |>
   select(day, CC_obs = confirmed, theta = stringency_index)
 
 
-# 3. C SNIPPETS  -------------------------------------------------------
+# 3. C-Snippets  -------------------------------------------------------
 # Each snippet is a small piece of C code that pomp compiles and links.
 # Variables that appear as state names / parameter names are automatically
 # available inside the snippet.
@@ -83,10 +80,8 @@ rinit <- Csnippet("
 # Erlang-2 distributed sojourn times, relaxing the memoryless (exponential)
 # assumption.
 #
-# Force of infection:
-#   lambda_t = R0 * gamma * (1 - r_t) * (I1 + I2) / N
 # NPI modifier:
-#   r_t = min(1,  b_theta * theta / 100)       theta (stringency index) in [0, 100]
+#  theta = stringency index in [0, 100]
 # Reporting queue:
 #   New infectious cases (leaving E2) enter Q; they exit at rate r_Q and are
 #   counted in CC (accumulated each day, then reset by pomp).
@@ -223,7 +218,7 @@ ggplot(sim0, aes(x = day, y = CC_obs)) +
        x = "Day (0 = 2020-03-01)", y = "Simulated daily cases")
 
 
-# 5. MAXIMUM LIKELIHOOD ESTIMATION -----------------------
+# 5. Maximum Likelihood Estimation -----------------------
 # traj_objfun() returns the negative log-likelihood based on the deterministic
 # skeleton (trajectory matching).
 pars_est_nm <- c("R0", "b_theta", "r_Q", "e10", "A_w", "phi_w", "rho_D")
@@ -318,8 +313,7 @@ ggplot() +
        caption = sprintf("Log-likelihood = %.1f", fits_mle$ll[1]))
 
 
-# 6. BAYESIAN MCMC ---------------------------------------------
-# We use the MLE as the starting point.
+# 6. Bayesian MCMC ---------------------------------------------
 
 # -- 6a. Log-likelihood on the natural scale ------------------
 # BayesianTools works on the untransformed scale; set partrans = NULL so pomp
@@ -344,7 +338,7 @@ log_prior <- function(par) {
 
 samp_prior <- function(n = 1) {
   m           <- matrix(NA, nrow = n, ncol = length(pars_est_nm))
-  colnames(m) <- pars_est_nm
+  colnames(m) <- pars_est_nm #MLE
   m[, "R0"]      <- 1 + rexp(n, 1)
   m[, "b_theta"] <- rexp(n, 1)
   m[, "r_Q"]     <- rexp(n, 1)
@@ -380,7 +374,7 @@ bayes_setup <- createBayesianSetup(
 Z_mat <- as.matrix(mle_ci[, pars_est_nm])
 
 n_chains <- 3       # change if you want
-n_iter   <- 20000    # change of you want
+n_iter   <- 20000    # change if you want
 
 settings <- list(
   iterations = n_chains * n_iter,
