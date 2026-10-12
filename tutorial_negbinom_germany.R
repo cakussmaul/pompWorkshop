@@ -160,7 +160,7 @@ rmeas <- Csnippet("
 ")
 
 
-# 4. BUILD THE POMP OBJECT -----------------------------------------------------
+# 4. Build the pomp object -----------------------------------------------------
 # Fixed epidemiological parameters (not estimated):
 #   sigma: discrete-time latency rate  (D_E = 4 days)
 #   gamma: discrete-time recovery rate (D_I = 5 days)
